@@ -31,6 +31,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { BallHistory } from "./BallHistory";
@@ -447,6 +448,9 @@ export function ScoringPanel({ match }: ScoringPanelProps) {
           <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
             <DialogHeader>
               <DialogTitle>Select Next Bowler</DialogTitle>
+              <DialogDescription>
+                Choose the bowler for the next over.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <p className="text-sm text-muted-foreground">
@@ -473,6 +477,9 @@ export function ScoringPanel({ match }: ScoringPanelProps) {
           <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
             <DialogHeader>
               <DialogTitle>Select Opening Batsmen</DialogTitle>
+              <DialogDescription>
+                Choose the striker and non-striker to start the innings.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <p className="text-sm text-muted-foreground">
@@ -526,6 +533,9 @@ export function ScoringPanel({ match }: ScoringPanelProps) {
           <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
             <DialogHeader>
               <DialogTitle>New Batsman</DialogTitle>
+              <DialogDescription>
+                Select the new batsman to come to the crease.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <p className="text-sm text-muted-foreground">
@@ -556,6 +566,9 @@ export function ScoringPanel({ match }: ScoringPanelProps) {
               <DialogTitle>
                 {selectedExtraType === 'penalty' ? 'Extra Runs' : `${selectedExtraType === 'noball' ? 'No Ball' : selectedExtraType?.toUpperCase()} Runs`}
               </DialogTitle>
+              <DialogDescription>
+                Enter additional runs or select standard extras.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <p className="text-sm text-muted-foreground text-center">
@@ -630,6 +643,9 @@ export function ScoringPanel({ match }: ScoringPanelProps) {
           <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="capitalize">Select Fielder ({pendingWicketType})</DialogTitle>
+              <DialogDescription>
+                Choose the fielder involved in the dismissal.
+              </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-2 py-4">
               {bowlingTeam.players.map((player) => (
