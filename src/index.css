@@ -1,0 +1,267 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&family=Bebas+Neue&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* HCL 2026 Dark Theme - IPL Inspired */
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 24 95% 53%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 195 100% 50%;
+    --secondary-foreground: 222 47% 6%;
+
+    --muted: 222 30% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 45 100% 50%;
+    --accent-foreground: 222 47% 6%;
+
+    --destructive: 348 83% 47%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 152 76% 50%;
+    --success-foreground: 222 47% 6%;
+
+    --border: 222 30% 18%;
+    --input: 222 30% 15%;
+    --ring: 24 95% 53%;
+
+    --radius: 0.75rem;
+
+    /* Custom HCL Colors */
+    --golden: 45 100% 50%;
+    --golden-glow: 45 100% 60%;
+    --powerplay: 280 100% 60%;
+    --power-surge: 195 100% 50%;
+    --wicket: 348 83% 47%;
+    --four: 152 76% 50%;
+    --six: 280 100% 60%;
+
+    /* Glassmorphism */
+    --glass-bg: 222 47% 10% / 0.8;
+    --glass-border: 222 30% 25% / 0.5;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(24 95% 53%), hsl(45 100% 50%));
+    --gradient-secondary: linear-gradient(135deg, hsl(195 100% 50%), hsl(280 100% 60%));
+    --gradient-golden: linear-gradient(135deg, hsl(45 100% 50%), hsl(35 100% 60%));
+    --gradient-card: linear-gradient(180deg, hsl(222 47% 12%), hsl(222 47% 8%));
+
+    /* Shadows */
+    --shadow-glow: 0 0 30px hsl(24 95% 53% / 0.3);
+    --shadow-golden: 0 0 40px hsl(45 100% 50% / 0.5);
+    --shadow-card: 0 8px 32px hsl(222 47% 4% / 0.5);
+
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 24 95% 53%;
+    --sidebar-primary-foreground: 222 47% 6%;
+    --sidebar-accent: 222 30% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 30% 18%;
+    --sidebar-ring: 24 95% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Roboto', sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+  }
+}
+
+@layer components {
+  .score-display {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  .glass-panel {
+    @apply bg-card/95 backdrop-blur-sm border border-white/10 rounded-xl;
+    box-shadow: var(--shadow-card);
+  }
+
+  .glass-panel-strong {
+    @apply bg-card border border-white/20 rounded-xl;
+    box-shadow: var(--shadow-card);
+  }
+
+  .btn-score {
+    @apply relative overflow-hidden transition-all duration-200 active:scale-95;
+  }
+
+  .btn-score::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-t from-black/20 to-transparent;
+  }
+
+  .glow-primary {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .glow-golden {
+    box-shadow: var(--shadow-golden);
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-primary);
+  }
+
+  .gradient-golden {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-golden);
+  }
+
+  /* Overlay specific styles */
+  .overlay-container {
+    @apply relative;
+    background: transparent !important;
+  }
+
+  .overlay-panel {
+    background: linear-gradient(180deg,
+        hsl(222 47% 12% / 0.95) 0%,
+        hsl(222 47% 8% / 0.98) 100%);
+    @apply backdrop-blur-sm border border-white/10;
+  }
+
+  /* Animation utilities */
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-score-pop {
+    animation: score-pop 0.4s ease-out;
+  }
+
+  .animate-wicket-shake {
+    animation: wicket-shake 0.5s ease-in-out;
+  }
+
+  .animate-golden-shimmer {
+    animation: golden-shimmer 2s ease-in-out infinite;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px hsl(24 95% 53% / 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 40px hsl(24 95% 53% / 0.6);
+  }
+}
+
+@keyframes score-pop {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes wicket-shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-10px);
+  }
+
+  75% {
+    transform: translateX(10px);
+  }
+}
+
+@keyframes golden-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted/50 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50;
+}
