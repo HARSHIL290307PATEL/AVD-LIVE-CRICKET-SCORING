@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useMatchStore } from "@/store/matchStore";
 import { TossPanel } from "@/components/admin/TossPanel";
 import { ScoringPanel } from "@/components/admin/ScoringPanel";
+import { MatchResultAnimation } from "@/components/admin/MatchResultAnimation";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -38,7 +39,7 @@ const AdminPanel = () => {
         <div className="text-center space-y-6">
           <h1 className="text-4xl font-display gradient-text">Innings Break</h1>
           <p className="text-xl text-muted-foreground">
-            {match.teams.teamA.name} scored {match.innings.first?.runs}/{match.innings.first?.wickets}
+            {match.teams?.teamA?.name || 'Team A'} scored {match.innings.first?.runs}/{match.innings.first?.wickets}
           </p>
           <p className="text-lg text-muted-foreground">
             Target: {(match.innings.first?.runs || 0) + 1} runs
@@ -57,20 +58,7 @@ const AdminPanel = () => {
 
   // Show completed screen
   if (match.status === 'completed') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-6">
-          <h1 className="text-4xl font-display gradient-text">Match Completed</h1>
-          <p className="text-2xl text-success font-display">{match.result}</p>
-          <Link to="/">
-            <Button size="lg" className="px-12 py-6 text-xl font-display">
-              <ArrowLeft className="h-5 w-5 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
+    return <MatchResultAnimation match={match} />;
   }
 
   // Show scoring panel for live matches

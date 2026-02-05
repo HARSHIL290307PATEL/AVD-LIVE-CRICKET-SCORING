@@ -64,7 +64,12 @@ export function ScoringPanel({ match }: ScoringPanelProps) {
   const [pendingWicketType, setPendingWicketType] = useState<WicketType | null>(null);
 
   const currentInnings = match.currentInnings === 1 ? match.innings.first : match.innings.second;
+
   if (!currentInnings) return null;
+
+  if (!match.teams?.teamA || !match.teams?.teamB) {
+    return <div className="p-4 text-center text-destructive">Error: Invalid team data</div>;
+  }
 
   const battingTeam = currentInnings.battingTeamId === match.teams.teamA.id
     ? match.teams.teamA

@@ -135,13 +135,22 @@ export const useMatchStore = create<MatchStore>()(
         const match = get().getMatch(matchId);
         if (!match || !match.toss) return;
 
+        // Safety check for legacy data or incomplete setup
+        const teamAId = match.teams?.teamA?.id || (match.teams as any)?.home?.id;
+        const teamBId = match.teams?.teamB?.id || (match.teams as any)?.away?.id;
+
+        if (!teamAId || !teamBId) {
+          console.error('Invalid team data in startInnings');
+          return;
+        }
+
         const battingFirst = match.toss.decision === 'bat'
           ? match.toss.winnerId
-          : (match.toss.winnerId === match.teams.teamA.id ? match.teams.teamB.id : match.teams.teamA.id);
+          : (match.toss.winnerId === teamAId ? teamBId : teamAId);
 
-        const bowlingFirst = battingFirst === match.teams.teamA.id
-          ? match.teams.teamB.id
-          : match.teams.teamA.id;
+        const bowlingFirst = battingFirst === teamAId
+          ? teamBId
+          : teamAId;
 
         if (match.currentInnings === 1) {
           set((state) => ({
@@ -393,6 +402,7 @@ export const useMatchStore = create<MatchStore>()(
             if (isOversLimit && finalStatus !== 'completed') {
               if (m.currentInnings === 1) {
                 finalCurrentInnings = 2;
+                finalStatus = 'innings_break';
               } else {
                 finalStatus = 'completed';
                 // Calculate Result (Defended or Tie)
@@ -501,6 +511,7 @@ export const useMatchStore = create<MatchStore>()(
             if (isOversLimit && finalStatus !== 'completed') {
               if (m.currentInnings === 1) {
                 finalCurrentInnings = 2;
+                finalStatus = 'innings_break';
               } else {
                 finalStatus = 'completed';
                 const r1 = m.innings.first?.runs || 0;
@@ -586,6 +597,7 @@ export const useMatchStore = create<MatchStore>()(
             if (isAllOut) {
               if (m.currentInnings === 1) {
                 finalCurrentInnings = 2;
+                finalStatus = 'innings_break';
               } else {
                 finalStatus = 'completed';
                 // Calculate Result
