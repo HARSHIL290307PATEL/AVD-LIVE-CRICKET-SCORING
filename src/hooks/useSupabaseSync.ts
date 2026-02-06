@@ -59,60 +59,80 @@ export function useSupabaseSync() {
         };
     }, [currentMatchId, getMatch]);
 
-    // Realtime Subscription & Initial Fetch
+    // Realtime Subscription & Initial Fetch (Global Sync)
     useEffect(() => {
-        if (!currentMatchId || !supabase) return;
+        if (!supabase) return;
 
-        // 1. Fetch latest data on mount
-        const fetchLatest = async () => {
+        // 1. Fetch ALL matches on mount to populate Dashboard
+        const fetchAllMatches = async () => {
             const { data, error } = await supabase
                 .from('matches')
-                .select('data')
-                .eq('id', currentMatchId)
-                .single();
+                .select('data');
 
-            if (data?.data && !error) {
-                const cloudMatch = data.data;
-                const localMatch = getMatch(currentMatchId);
+            if (data && !error) {
+                const cloudMatches = data.map((d: any) => d.data);
 
-                if (!localMatch || cloudMatch.updatedAt > localMatch.updatedAt) {
-                    console.log('Fetching newer match data from cloud...');
-                    useMatchStore.setState((state) => ({
-                        matches: state.matches.map(m => m.id === cloudMatch.id ? cloudMatch : m)
-                    }));
-                    // If local didn't have it, we might need to add it? 
-                    // For now, assuming user has basic shell or we just update existing.
-                    // Actually, if it is not in local list, we should probably add it?
-                    // But currentMatchId implies we selected it.
-                    lastSyncedRef.current = cloudMatch.updatedAt;
-                }
+                // Merge cloud matches into local store
+                useMatchStore.setState((state) => {
+                    const localMatchesMap = new Map(state.matches.map(m => [m.id, m]));
+                    let hasChanges = false;
+
+                    cloudMatches.forEach((cloudMatch: any) => {
+                        const localMatch = localMatchesMap.get(cloudMatch.id);
+                        if (!localMatch || cloudMatch.updatedAt > localMatch.updatedAt) {
+                            localMatchesMap.set(cloudMatch.id, cloudMatch);
+                            hasChanges = true;
+                        }
+                    });
+
+                    if (hasChanges) {
+                        console.log('Synced matches from cloud');
+                        return { matches: Array.from(localMatchesMap.values()) };
+                    }
+                    return state;
+                });
             }
         };
-        fetchLatest();
+        fetchAllMatches();
 
-        // 2. Subscribe to changes
+        // 2. Subscribe to changes for ALL matches (so Dashboard updates live)
         const channel = supabase
-            .channel(`match-${currentMatchId}`)
+            .channel(`all-matches`)
             .on(
                 'postgres_changes',
                 {
                     event: 'UPDATE',
                     schema: 'public',
                     table: 'matches',
-                    filter: `id=eq.${currentMatchId}`
                 },
                 (payload) => {
                     const newMatchData = payload.new.data;
                     if (newMatchData) {
-                        const localMatch = getMatch(currentMatchId);
-                        // Only update if cloud version is newer
-                        if (!localMatch || newMatchData.updatedAt > localMatch.updatedAt) {
-                            console.log('Received update from cloud:', newMatchData.updatedAt);
-                            useMatchStore.setState((state) => ({
-                                matches: state.matches.map(m => m.id === newMatchData.id ? newMatchData : m)
-                            }));
-                            lastSyncedRef.current = newMatchData.updatedAt;
-                        }
+                        useMatchStore.setState((state) => {
+                            const exists = state.matches.find(m => m.id === newMatchData.id);
+                            if (!exists || newMatchData.updatedAt > exists.updatedAt) {
+                                console.log('Received update for match:', newMatchData.id);
+                                const otherMatches = state.matches.filter(m => m.id !== newMatchData.id);
+                                return { matches: [...otherMatches, newMatchData] };
+                            }
+                            return state;
+                        });
+                    }
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'matches',
+                },
+                (payload) => {
+                    const newMatchData = payload.new.data;
+                    if (newMatchData) {
+                        useMatchStore.setState((state) => ({
+                            matches: [...state.matches, newMatchData]
+                        }));
                     }
                 }
             )
@@ -121,7 +141,9 @@ export function useSupabaseSync() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentMatchId, getMatch]);
+    }, []); // Run once on mount
 
     return null; // This hook doesn't render anything
 }
+
+
