@@ -260,7 +260,7 @@ export function useOverlayData(match: Match) {
     bowlerStats,
     totalRuns,
 
-    totalRuns,
+
 
     // Wicket Overlay Data
     showWicketOverlay,
