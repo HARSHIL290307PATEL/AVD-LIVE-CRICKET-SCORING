@@ -46,7 +46,7 @@ const getBallCircleStyles = (ball: { runs: number; isWicket: boolean; extras: nu
     };
   }
 
-  // Four - Purple/Magenta (changed from yellow)
+  // Four - Purple/Magenta
   if (ball.runs >= 4) {
     return {
       background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
@@ -115,39 +115,32 @@ export function Overlay({ match }: OverlayProps) {
     return <div className="overlay-container min-h-screen" style={{ background: 'transparent' }} />;
   }
 
-  // Create dynamic ball slots for current over - handle extras beyond 6 legal balls
-  // Count legal balls (non-extras) in the current over
+  // Create dynamic ball slots for current over
   const legalBallsInOver = data.currentOverBalls.filter(
     ball => !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye'
   ).length;
 
-  // Total balls bowled in this over (including extras)
   const totalBallsInOver = data.currentOverBalls.length;
 
-  // If over is complete (6 legal balls), show only the last 6 balls (sliding window)
-  // Otherwise show up to 6 slots with actual balls
   const ballSlots = (() => {
     if (legalBallsInOver >= 6 && totalBallsInOver > 6) {
-      // Over complete with extras - show last 6 deliveries
       return data.currentOverBalls.slice(-6).map(ball => ({
         ...ball,
         isGolden: ball.isGoldenBall,
       }));
     } else {
-      // Over in progress - show all balls bowled plus empty slots up to max needed
       const maxSlots = Math.max(6, totalBallsInOver);
       return Array(maxSlots).fill(null).map((_, idx) => {
         const ball = data.currentOverBalls[idx];
         if (ball) {
           return { ...ball, isGolden: ball.isGoldenBall };
         }
-        // Only show empty slots for remaining legal balls needed
         return idx < 6 ? null : undefined;
       }).filter(slot => slot !== undefined);
     }
   })();
 
-  // Get event theme colors
+  // Get event theme colors for the special events strip
   const getEventStripStyles = () => {
     switch (data.showAnimation) {
       case 'golden':
@@ -197,15 +190,101 @@ export function Overlay({ match }: OverlayProps) {
           opacity: isAnimating ? 1 : 0,
         }}
       >
-        {/* Special Events Strip - Above Scoreboard */}
+
+        {/* Wicket Details Overlay - Horizontal Bar Style */}
+        {data.showWicketOverlay && data.dismissedBatsman && (
+          <div
+            className="w-full flex justify-center mb-2"
+            style={{
+              animation: 'wicketSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              zIndex: 100,
+            }}
+          >
+            <div
+              className="relative overflow-hidden"
+              style={{
+                width: '80%',
+                background: 'linear-gradient(180deg, rgba(0, 30, 60, 0.98) 0%, rgba(0, 20, 40, 0.99) 100%)',
+                borderRadius: '8px',
+                border: '2px solid #0ea5e9',
+                boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3)',
+                padding: '12px 24px',
+              }}
+            >
+              {/* Main Content Row */}
+              <div className="flex items-center justify-between">
+                {/* Left: Batsman Name */}
+                <div className="flex items-baseline gap-2">
+                  <span className="text-white/60 text-sm uppercase tracking-wide">
+                    {data.dismissedBatsman.name.split(' ').slice(0, -1).join(' ').toUpperCase() || data.dismissedBatsman.name.split(' ')[0]?.toUpperCase()}
+                  </span>
+                  <span className="text-white text-xl font-black uppercase tracking-wide">
+                    {data.dismissedBatsman.name.split(' ').pop()?.toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Right: Score */}
+                <div className="flex items-baseline gap-1">
+                  <span className="text-white text-3xl font-black tabular-nums">
+                    {data.dismissedBatsman.runs}
+                  </span>
+                  <span className="text-white/60 text-lg font-medium">
+                    ({data.dismissedBatsman.balls})
+                  </span>
+                </div>
+              </div>
+
+              {/* Bottom Row: Dismissal Info & Stats */}
+              <div className="flex items-center justify-between mt-1">
+                {/* Left: Dismissal Details */}
+                <div className="flex items-center gap-2">
+                  <span className="text-white/80 text-sm">
+                    {data.dismissedBatsman.dismissalType === 'caught' && 'c '}
+                    {data.dismissedBatsman.dismissalType === 'runout' && 'run out '}
+                    {data.dismissedBatsman.dismissalType === 'stumped' && 'st '}
+                    {data.dismissedBatsman.dismissalType === 'bowled' && 'b '}
+                    {data.dismissedBatsman.dismissalType === 'lbw' && 'lbw '}
+                    {data.dismissedBatsman.dismissalType === 'hitwicket' && 'hit wicket '}
+                    {data.dismissedBatsman.dismissalType === 'caught_tree' && 'c '}
+                    {!['caught', 'runout', 'stumped', 'bowled', 'lbw', 'hitwicket', 'caught_tree'].includes(data.dismissedBatsman.dismissalType) && ''}
+                    {data.dismissedBatsman.fielderName && (
+                      <span className="uppercase">{data.dismissedBatsman.fielderName.split(' ').pop()} </span>
+                    )}
+                    b {data.dismissedBatsman.bowlerName.split(' ').pop()?.toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Right: Stats */}
+                <div className="flex items-center gap-4">
+                  {/* 4s */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-purple-400 text-xs font-bold">4s</span>
+                    <span className="text-white text-sm font-bold tabular-nums">{data.dismissedBatsman.fours}</span>
+                  </div>
+                  {/* 6s */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-green-400 text-xs font-bold">6s</span>
+                    <span className="text-white text-sm font-bold tabular-nums">{data.dismissedBatsman.sixes}</span>
+                  </div>
+                  {/* Strike Rate */}
+                  <span className="text-white/80 text-sm">
+                    STRIKE RATE {data.dismissedBatsman.strikeRate}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Special Events Strip - Below Wicket Overlay (FOUR / SIX / WICKET animations) */}
         {data.specialEventText && eventStripStyles && (
           <div
             className="w-full overflow-hidden"
             style={{
               ...eventStripStyles,
               height: '36px',
-              transition: 'all 0.3s ease-out',
-              animation: 'slideUp 0.4s ease-out',
+              animation: 'stripSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards',
+              opacity: 0,
             }}
           >
             {/* Marquee Container */}
@@ -228,264 +307,265 @@ export function Overlay({ match }: OverlayProps) {
           </div>
         )}
 
-        {/* Main scoreboard container */}
-        <div
-          className="w-full flex items-stretch"
-          style={{
-            background: 'linear-gradient(180deg, rgba(0, 30, 60, 0.95) 0%, rgba(0, 20, 40, 0.98) 100%)',
-            borderTop: '3px solid #0ea5e9',
-          }}
-        >
-          {/* Left Section - Batting Team with Score */}
-          <div className="flex items-center gap-4 px-6 py-3">
-            {/* Team Logo */}
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0 ring-2 ring-blue-400/50">
-              {data.battingTeam?.logo ? (
-                <img src={data.battingTeam.logo} alt={data.battingTeam.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-white font-black text-xl">{data.battingTeam?.shortName || data.battingTeam?.name?.substring(0, 3).toUpperCase()}</span>
-              )}
-            </div>
-
-            {/* Team Name above, Score with Overs beside */}
-            <div className="flex flex-col">
-              <div className="text-cyan-400 text-sm font-bold uppercase tracking-wider mb-1">
-                {data.battingTeam?.name}
+        {/* Main scoreboard container - Hidden during wicket overlay */}
+        {!data.showWicketOverlay && (
+          <div
+            className="w-full flex items-stretch"
+            style={{
+              background: 'linear-gradient(180deg, rgba(0, 30, 60, 0.95) 0%, rgba(0, 20, 40, 0.98) 100%)',
+              borderTop: '3px solid #0ea5e9',
+              animation: 'scoreboardFadeIn 0.5s ease-out forwards',
+            }}
+          >
+            {/* Left Section - Batting Team with Score */}
+            <div className="flex items-center gap-4 px-6 py-3">
+              {/* Team Logo */}
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0 ring-2 ring-blue-400/50">
+                {data.battingTeam?.logo ? (
+                  <img src={data.battingTeam.logo} alt={data.battingTeam.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white font-black text-xl">{data.battingTeam?.shortName || data.battingTeam?.name?.substring(0, 3).toUpperCase()}</span>
+                )}
               </div>
-              <div className="flex items-end gap-6">
-                <span className="text-white text-5xl font-black tabular-nums">
-                  {data.currentInnings.runs}-{data.currentInnings.wickets}
-                </span>
-                <div className="flex flex-col items-center">
-                  <span className="text-white/50 text-[10px] uppercase tracking-wider">OVERS</span>
-                  <span className="text-white/70 text-lg font-bold tabular-nums">{data.currentInnings.overs}.{data.currentInnings.balls}</span>
+
+              {/* Team Name above, Score with Overs beside */}
+              <div className="flex flex-col">
+                <div className="text-cyan-400 text-sm font-bold uppercase tracking-wider mb-1">
+                  {data.battingTeam?.name}
+                </div>
+                <div className="flex items-end gap-6">
+                  <span className="text-white text-5xl font-black tabular-nums">
+                    {data.currentInnings.runs}-{data.currentInnings.wickets}
+                  </span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-white/50 text-[10px] uppercase tracking-wider">OVERS</span>
+                    <span className="text-white/70 text-lg font-bold tabular-nums">{data.currentInnings.overs}.{data.currentInnings.balls}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Center Section - Single Continuous Cylinder for Both Batsmen */}
-          <div className="flex-1 flex flex-col items-center justify-center px-6 py-1">
-            {/* Single Cylinder Container - Fixed positions, sliding highlight */}
-            <div
-              className="flex items-center relative"
-              style={{
-                background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.12) 100%)',
-                borderRadius: '40px',
-                border: '2px solid rgba(255, 255, 255, 0.15)',
-                boxShadow: 'inset 0 1px 3px rgba(255,255,255,0.05)',
-              }}
-            >
-              {/* Sliding Highlight Background */}
+            {/* Center Section - Batsmen */}
+            <div className="flex-1 flex flex-col items-center justify-center px-6 py-1">
+              {/* Single Cylinder Container - Fixed positions, sliding highlight */}
               <div
-                className="absolute top-0 h-full pointer-events-none"
+                className="flex items-center relative"
                 style={{
-                  left: data.batsmanOneIsStriker ? '0' : '50%',
-                  width: '50%',
-                  background: 'linear-gradient(180deg, rgba(34, 197, 94, 0.4) 0%, rgba(34, 197, 94, 0.2) 50%, rgba(34, 197, 94, 0.4) 100%)',
+                  background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.12) 100%)',
                   borderRadius: '40px',
-                  boxShadow: '0 0 20px rgba(34, 197, 94, 0.5), inset 0 1px 3px rgba(255,255,255,0.15)',
-                  border: '2px solid rgba(34, 197, 94, 0.6)',
-                  transition: 'left 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                  zIndex: 1,
-                }}
-              />
-
-              {/* Batsman 1 - Fixed position */}
-              {data.batsmanOne && (
-                <div
-                  className="flex items-center gap-4 px-8 py-1.5 min-w-[280px] relative z-10"
-                  style={{
-                    opacity: data.batsmanOneIsOut ? 0.35 : 1,
-                    transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }}
-                >
-                  {/* Arrow before striker name - hide if out */}
-                  <span
-                    className="text-green-400 text-xs"
-                    style={{
-                      opacity: data.batsmanOneIsStriker && !data.batsmanOneIsOut ? 1 : 0,
-                      transform: data.batsmanOneIsStriker && !data.batsmanOneIsOut ? 'scale(1) translateX(0)' : 'scale(0) translateX(-10px)',
-                      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }}
-                  >▶</span>
-                  <span
-                    className="text-lg font-black uppercase tracking-wide"
-                    style={{
-                      color: data.batsmanOneIsOut
-                        ? 'rgb(239, 68, 68)'
-                        : data.batsmanOneIsStriker
-                          ? 'rgb(134, 239, 172)'
-                          : 'rgba(255, 255, 255, 0.7)',
-                      transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }}
-                  >
-                    {data.batsmanOne.name?.split(' ').pop()?.toUpperCase()}
-                    {data.batsmanOneIsOut && <span className="text-red-500 text-xs ml-1">OUT</span>}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <span
-                      className="text-2xl font-black tabular-nums"
-                      style={{
-                        color: data.batsmanOneIsOut
-                          ? 'rgba(255, 255, 255, 0.5)'
-                          : data.batsmanOneIsStriker
-                            ? 'white'
-                            : 'rgba(255, 255, 255, 0.6)',
-                        transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                      }}
-                    >{data.batsmanOneStats.runs}</span>
-                    <span
-                      className="text-sm font-bold tabular-nums"
-                      style={{
-                        color: data.batsmanOneIsOut
-                          ? 'rgba(255, 255, 255, 0.3)'
-                          : data.batsmanOneIsStriker
-                            ? 'rgba(134, 239, 172, 0.7)'
-                            : 'rgba(255, 255, 255, 0.4)',
-                        transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                      }}
-                    >({data.batsmanOneStats.balls})</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Batsman 2 - Fixed position */}
-              {data.batsmanTwo && (
-                <div
-                  className="flex items-center gap-4 px-8 py-1.5 min-w-[260px] relative z-10"
-                  style={{
-                    opacity: data.batsmanTwoIsOut ? 0.35 : 1,
-                    transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }}
-                >
-                  {/* Arrow before striker name - hide if out */}
-                  <span
-                    className="text-green-400 text-xs"
-                    style={{
-                      opacity: data.batsmanTwoIsStriker && !data.batsmanTwoIsOut ? 1 : 0,
-                      transform: data.batsmanTwoIsStriker && !data.batsmanTwoIsOut ? 'scale(1) translateX(0)' : 'scale(0) translateX(-10px)',
-                      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }}
-                  >▶</span>
-                  <span
-                    className="text-lg font-bold uppercase tracking-wide"
-                    style={{
-                      color: data.batsmanTwoIsOut
-                        ? 'rgb(239, 68, 68)'
-                        : data.batsmanTwoIsStriker
-                          ? 'rgb(134, 239, 172)'
-                          : 'rgba(255, 255, 255, 0.7)',
-                      transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }}
-                  >
-                    {data.batsmanTwo.name?.split(' ').pop()?.toUpperCase()}
-                    {data.batsmanTwoIsOut && <span className="text-red-500 text-xs ml-1">OUT</span>}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <span
-                      className="text-xl font-bold tabular-nums"
-                      style={{
-                        color: data.batsmanTwoIsOut
-                          ? 'rgba(255, 255, 255, 0.5)'
-                          : data.batsmanTwoIsStriker
-                            ? 'white'
-                            : 'rgba(255, 255, 255, 0.6)',
-                        transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                      }}
-                    >{data.batsmanTwoStats.runs}</span>
-                    <span
-                      className="text-sm font-medium tabular-nums"
-                      style={{
-                        color: data.batsmanTwoIsOut
-                          ? 'rgba(255, 255, 255, 0.3)'
-                          : data.batsmanTwoIsStriker
-                            ? 'rgba(134, 239, 172, 0.7)'
-                            : 'rgba(255, 255, 255, 0.4)',
-                        transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                      }}
-                    >({data.batsmanTwoStats.balls})</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Extras Display - Only shows when extras exist */}
-            {data.currentInnings && (data.currentInnings.extras.wides > 0 || data.currentInnings.extras.noBalls > 0 || data.currentInnings.extras.byes > 0 || data.currentInnings.extras.legByes > 0) && (
-              <div
-                className="flex items-center gap-2 mt-1"
-                style={{
-                  animation: 'fadeIn 0.3s ease-out',
+                  border: '2px solid rgba(255, 255, 255, 0.15)',
+                  boxShadow: 'inset 0 1px 3px rgba(255,255,255,0.05)',
                 }}
               >
-                <span className="text-orange-400 text-xs font-bold uppercase tracking-wider">EXTRAS:</span>
-                <span className="text-white text-sm font-bold">
-                  {(data.currentInnings.extras.wides + data.currentInnings.extras.noBalls + data.currentInnings.extras.byes + data.currentInnings.extras.legByes)}
-                </span>
-                <span className="text-white/60 text-xs">
-                  ({data.currentInnings.extras.wides > 0 && `W${data.currentInnings.extras.wides}`}
-                  {data.currentInnings.extras.wides > 0 && (data.currentInnings.extras.noBalls > 0 || data.currentInnings.extras.byes > 0 || data.currentInnings.extras.legByes > 0) && ', '}
-                  {data.currentInnings.extras.noBalls > 0 && `NB${data.currentInnings.extras.noBalls}`}
-                  {data.currentInnings.extras.noBalls > 0 && (data.currentInnings.extras.byes > 0 || data.currentInnings.extras.legByes > 0) && ', '}
-                  {data.currentInnings.extras.byes > 0 && `B${data.currentInnings.extras.byes}`}
-                  {data.currentInnings.extras.byes > 0 && data.currentInnings.extras.legByes > 0 && ', '}
-                  {data.currentInnings.extras.legByes > 0 && `LB${data.currentInnings.extras.legByes}`})
-                </span>
-              </div>
-            )}
-          </div>
+                {/* Sliding Highlight Background */}
+                <div
+                  className="absolute top-0 h-full pointer-events-none"
+                  style={{
+                    left: data.batsmanOneIsStriker ? '0' : '50%',
+                    width: '50%',
+                    background: 'linear-gradient(180deg, rgba(34, 197, 94, 0.4) 0%, rgba(34, 197, 94, 0.2) 50%, rgba(34, 197, 94, 0.4) 100%)',
+                    borderRadius: '40px',
+                    boxShadow: '0 0 20px rgba(34, 197, 94, 0.5), inset 0 1px 3px rgba(255,255,255,0.15)',
+                    border: '2px solid rgba(34, 197, 94, 0.6)',
+                    transition: 'left 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                    zIndex: 1,
+                  }}
+                />
 
-          {/* Right Section - Bowling Team with Bowler Info and Ball-by-Ball below */}
-          <div className="flex items-center gap-5 px-6 py-2">
-            {/* Bowler Info with Ball Circles Below */}
-            <div className="flex flex-col items-center gap-1.5">
-              {/* Bowling Team Name above Bowler */}
-              <div className="text-green-400 text-xs font-bold uppercase tracking-wider">
-                {data.bowlingTeam?.name}
+                {/* Batsman 1 - Fixed position */}
+                {data.batsmanOne && (
+                  <div
+                    className="flex items-center gap-4 px-8 py-1.5 min-w-[280px] relative z-10"
+                    style={{
+                      opacity: data.batsmanOneIsOut ? 0.35 : 1,
+                      transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  >
+                    <span
+                      className="text-green-400 text-xs"
+                      style={{
+                        opacity: data.batsmanOneIsStriker && !data.batsmanOneIsOut ? 1 : 0,
+                        transform: data.batsmanOneIsStriker && !data.batsmanOneIsOut ? 'scale(1) translateX(0)' : 'scale(0) translateX(-10px)',
+                        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                    >▶</span>
+                    <span
+                      className="text-lg font-black uppercase tracking-wide"
+                      style={{
+                        color: data.batsmanOneIsOut
+                          ? 'rgb(239, 68, 68)'
+                          : data.batsmanOneIsStriker
+                            ? 'rgb(134, 239, 172)'
+                            : 'rgba(255, 255, 255, 0.7)',
+                        transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                    >
+                      {data.batsmanOne.name?.split(' ').pop()?.toUpperCase()}
+                      {data.batsmanOneIsOut && <span className="text-red-500 text-xs ml-1">OUT</span>}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <span
+                        className="text-2xl font-black tabular-nums"
+                        style={{
+                          color: data.batsmanOneIsOut
+                            ? 'rgba(255, 255, 255, 0.5)'
+                            : data.batsmanOneIsStriker
+                              ? 'white'
+                              : 'rgba(255, 255, 255, 0.6)',
+                          transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                        }}
+                      >{data.batsmanOneStats.runs}</span>
+                      <span
+                        className="text-sm font-bold tabular-nums"
+                        style={{
+                          color: data.batsmanOneIsOut
+                            ? 'rgba(255, 255, 255, 0.3)'
+                            : data.batsmanOneIsStriker
+                              ? 'rgba(134, 239, 172, 0.7)'
+                              : 'rgba(255, 255, 255, 0.4)',
+                          transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                        }}
+                      >({data.batsmanOneStats.balls})</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Batsman 2 - Fixed position */}
+                {data.batsmanTwo && (
+                  <div
+                    className="flex items-center gap-4 px-8 py-1.5 min-w-[260px] relative z-10"
+                    style={{
+                      opacity: data.batsmanTwoIsOut ? 0.35 : 1,
+                      transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  >
+                    <span
+                      className="text-green-400 text-xs"
+                      style={{
+                        opacity: data.batsmanTwoIsStriker && !data.batsmanTwoIsOut ? 1 : 0,
+                        transform: data.batsmanTwoIsStriker && !data.batsmanTwoIsOut ? 'scale(1) translateX(0)' : 'scale(0) translateX(-10px)',
+                        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                    >▶</span>
+                    <span
+                      className="text-lg font-bold uppercase tracking-wide"
+                      style={{
+                        color: data.batsmanTwoIsOut
+                          ? 'rgb(239, 68, 68)'
+                          : data.batsmanTwoIsStriker
+                            ? 'rgb(134, 239, 172)'
+                            : 'rgba(255, 255, 255, 0.7)',
+                        transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                    >
+                      {data.batsmanTwo.name?.split(' ').pop()?.toUpperCase()}
+                      {data.batsmanTwoIsOut && <span className="text-red-500 text-xs ml-1">OUT</span>}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <span
+                        className="text-xl font-bold tabular-nums"
+                        style={{
+                          color: data.batsmanTwoIsOut
+                            ? 'rgba(255, 255, 255, 0.5)'
+                            : data.batsmanTwoIsStriker
+                              ? 'white'
+                              : 'rgba(255, 255, 255, 0.6)',
+                          transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                        }}
+                      >{data.batsmanTwoStats.runs}</span>
+                      <span
+                        className="text-sm font-medium tabular-nums"
+                        style={{
+                          color: data.batsmanTwoIsOut
+                            ? 'rgba(255, 255, 255, 0.3)'
+                            : data.batsmanTwoIsStriker
+                              ? 'rgba(134, 239, 172, 0.7)'
+                              : 'rgba(255, 255, 255, 0.4)',
+                          transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                        }}
+                      >({data.batsmanTwoStats.balls})</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Bowler Name and Stats - wickets-runs overs format */}
-              {data.bowler && (
-                <div className="flex items-center gap-2">
-                  <span className="text-white text-base font-bold uppercase tracking-wide">
-                    {data.bowler.name?.split(' ').pop()?.toUpperCase()}
+              {/* Extras Display */}
+              {data.currentInnings && (data.currentInnings.extras.wides > 0 || data.currentInnings.extras.noBalls > 0 || data.currentInnings.extras.byes > 0 || data.currentInnings.extras.legByes > 0) && (
+                <div
+                  className="flex items-center gap-2 mt-1"
+                  style={{
+                    animation: 'fadeIn 0.3s ease-out',
+                  }}
+                >
+                  <span className="text-orange-400 text-xs font-bold uppercase tracking-wider">EXTRAS:</span>
+                  <span className="text-white text-sm font-bold">
+                    {(data.currentInnings.extras.wides + data.currentInnings.extras.noBalls + data.currentInnings.extras.byes + data.currentInnings.extras.legByes)}
                   </span>
-                  <span className="text-green-400 text-base font-bold tabular-nums">
-                    {data.bowlerStats?.wickets || 0}-{data.bowlerStats?.runs || 0}
-                  </span>
-                  <span className="text-green-400/60 text-sm font-medium tabular-nums">
-                    {data.bowlerStats?.overs || '0.0'}
+                  <span className="text-white/60 text-xs">
+                    ({data.currentInnings.extras.wides > 0 && `W${data.currentInnings.extras.wides}`}
+                    {data.currentInnings.extras.wides > 0 && (data.currentInnings.extras.noBalls > 0 || data.currentInnings.extras.byes > 0 || data.currentInnings.extras.legByes > 0) && ', '}
+                    {data.currentInnings.extras.noBalls > 0 && `NB${data.currentInnings.extras.noBalls}`}
+                    {data.currentInnings.extras.noBalls > 0 && (data.currentInnings.extras.byes > 0 || data.currentInnings.extras.legByes > 0) && ', '}
+                    {data.currentInnings.extras.byes > 0 && `B${data.currentInnings.extras.byes}`}
+                    {data.currentInnings.extras.byes > 0 && data.currentInnings.extras.legByes > 0 && ', '}
+                    {data.currentInnings.extras.legByes > 0 && `LB${data.currentInnings.extras.legByes}`})
                   </span>
                 </div>
               )}
+            </div>
 
-              {/* Ball-by-ball circles - smaller, below bowler */}
-              <div className="flex items-center gap-1.5">
-                {ballSlots.map((ball, idx) => {
-                  const styles = getBallCircleStyles(ball, ball === null);
-                  return (
-                    <div
-                      key={idx}
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300"
-                      style={styles}
-                    >
-                      {ball ? ball.display : ''}
-                    </div>
-                  );
-                })}
+            {/* Right Section - Bowling Team with Bowler Info and Ball-by-Ball */}
+            <div className="flex items-center gap-5 px-6 py-2">
+              {/* Bowler Info with Ball Circles Below */}
+              <div className="flex flex-col items-center gap-1.5">
+                {/* Bowling Team Name */}
+                <div className="text-green-400 text-xs font-bold uppercase tracking-wider">
+                  {data.bowlingTeam?.name}
+                </div>
+
+                {/* Bowler Name and Stats */}
+                {data.bowler && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-base font-bold uppercase tracking-wide">
+                      {data.bowler.name?.split(' ').pop()?.toUpperCase()}
+                    </span>
+                    <span className="text-green-400 text-base font-bold tabular-nums">
+                      {data.bowlerStats?.wickets || 0}-{data.bowlerStats?.runs || 0}
+                    </span>
+                    <span className="text-green-400/60 text-sm font-medium tabular-nums">
+                      {data.bowlerStats?.overs || '0.0'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Ball-by-ball circles */}
+                <div className="flex items-center gap-1.5">
+                  {ballSlots.map((ball, idx) => {
+                    const styles = getBallCircleStyles(ball, ball === null);
+                    return (
+                      <div
+                        key={idx}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300"
+                        style={styles}
+                      >
+                        {ball ? ball.display : ''}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Bowling Team Logo */}
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0 ring-2 ring-green-400/50">
+                {data.bowlingTeam?.logo ? (
+                  <img src={data.bowlingTeam.logo} alt={data.bowlingTeam.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white font-black text-xl">{data.bowlingTeam?.shortName || data.bowlingTeam?.name?.substring(0, 3).toUpperCase()}</span>
+                )}
               </div>
             </div>
-
-            {/* Bowling Team Logo */}
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0 ring-2 ring-green-400/50">
-              {data.bowlingTeam?.logo ? (
-                <img src={data.bowlingTeam.logo} alt={data.bowlingTeam.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-white font-black text-xl">{data.bowlingTeam?.shortName || data.bowlingTeam?.name?.substring(0, 3).toUpperCase()}</span>
-              )}
-            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

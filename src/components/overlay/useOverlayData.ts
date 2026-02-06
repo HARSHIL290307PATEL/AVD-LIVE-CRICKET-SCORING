@@ -4,6 +4,7 @@ import { Match, Player } from "@/types/match";
 export function useOverlayData(match: Match) {
   const [showAnimation, setShowAnimation] = useState<'four' | 'six' | 'wicket' | 'golden' | 'freehit' | null>(null);
   const [specialEventText, setSpecialEventText] = useState<string | null>(null);
+  const [showWicketOverlay, setShowWicketOverlay] = useState(false);
   const [lastEventId, setLastEventId] = useState<string | null>(null);
 
   // State for stable batsman slots to prevent jumping
@@ -22,6 +23,10 @@ export function useOverlayData(match: Match) {
 
       if (lastEvent.isWicket) {
         setShowAnimation('wicket');
+        // Delay wicket overlay slightly for impact
+        setTimeout(() => setShowWicketOverlay(true), 500);
+        // Hide wicket overlay after some time
+        setTimeout(() => setShowWicketOverlay(false), 8000);
         setSpecialEventText("WICKET!");
         setTimeout(() => { setShowAnimation(null); setSpecialEventText(null); }, 4000);
       } else if (lastEvent.runs === 6 || lastEvent.runs === 12) {
@@ -147,8 +152,33 @@ export function useOverlayData(match: Match) {
       balls: events.length,
       fours: events.filter(e => e.runs === 4 || e.runs === 8).length,
       sixes: events.filter(e => e.runs === 6 || e.runs === 12).length,
+      strikeRate: events.length > 0 ? ((events.reduce((sum, e) => sum + e.runs, 0) / events.length) * 100).toFixed(1) : '0.0'
     };
   };
+
+  // Get dismissed batsman info if wicket
+  const dismissedBatsman = useMemo(() => {
+    if (!currentInnings || currentInnings.ballEvents.length === 0) return null;
+    const lastEvent = currentInnings.ballEvents[currentInnings.ballEvents.length - 1];
+
+    // Check if the very last event was a wicket
+    if (lastEvent.isWicket && showWicketOverlay) {
+      // The batsmanId in the wicket event is the one who got out
+      const player = battingTeam?.players.find(p => p.id === lastEvent.batsmanId);
+      if (!player) return null;
+
+      const stats = getBatsmanStats(player);
+
+      return {
+        ...player,
+        ...stats,
+        dismissalType: lastEvent.wicketType || 'bowled',
+        fielderName: lastEvent.dismissedBy ? (bowlingTeam?.players.find(p => p.id === lastEvent.dismissedBy)?.name) : undefined,
+        bowlerName: bowler?.name || ''
+      };
+    }
+    return null;
+  }, [currentInnings?.ballEvents, showWicketOverlay, battingTeam, bowlingTeam, bowler]);
 
   const strikerStats = getBatsmanStats(startStriker);
   const nonStrikerStats = getBatsmanStats(startNonStriker);
@@ -229,6 +259,12 @@ export function useOverlayData(match: Match) {
     partnership,
     bowlerStats,
     totalRuns,
+
+    totalRuns,
+
+    // Wicket Overlay Data
+    showWicketOverlay,
+    dismissedBatsman,
 
   };
 }
