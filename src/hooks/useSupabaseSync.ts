@@ -59,5 +59,69 @@ export function useSupabaseSync() {
         };
     }, [currentMatchId, getMatch]);
 
+    // Realtime Subscription & Initial Fetch
+    useEffect(() => {
+        if (!currentMatchId || !supabase) return;
+
+        // 1. Fetch latest data on mount
+        const fetchLatest = async () => {
+            const { data, error } = await supabase
+                .from('matches')
+                .select('data')
+                .eq('id', currentMatchId)
+                .single();
+
+            if (data?.data && !error) {
+                const cloudMatch = data.data;
+                const localMatch = getMatch(currentMatchId);
+
+                if (!localMatch || cloudMatch.updatedAt > localMatch.updatedAt) {
+                    console.log('Fetching newer match data from cloud...');
+                    useMatchStore.setState((state) => ({
+                        matches: state.matches.map(m => m.id === cloudMatch.id ? cloudMatch : m)
+                    }));
+                    // If local didn't have it, we might need to add it? 
+                    // For now, assuming user has basic shell or we just update existing.
+                    // Actually, if it is not in local list, we should probably add it?
+                    // But currentMatchId implies we selected it.
+                    lastSyncedRef.current = cloudMatch.updatedAt;
+                }
+            }
+        };
+        fetchLatest();
+
+        // 2. Subscribe to changes
+        const channel = supabase
+            .channel(`match-${currentMatchId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'matches',
+                    filter: `id=eq.${currentMatchId}`
+                },
+                (payload) => {
+                    const newMatchData = payload.new.data;
+                    if (newMatchData) {
+                        const localMatch = getMatch(currentMatchId);
+                        // Only update if cloud version is newer
+                        if (!localMatch || newMatchData.updatedAt > localMatch.updatedAt) {
+                            console.log('Received update from cloud:', newMatchData.updatedAt);
+                            useMatchStore.setState((state) => ({
+                                matches: state.matches.map(m => m.id === newMatchData.id ? newMatchData : m)
+                            }));
+                            lastSyncedRef.current = newMatchData.updatedAt;
+                        }
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [currentMatchId, getMatch]);
+
     return null; // This hook doesn't render anything
 }
