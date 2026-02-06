@@ -2,8 +2,13 @@ import { useState, useEffect, useMemo } from "react";
 import { Match, Player } from "@/types/match";
 
 export function useOverlayData(match: Match) {
-  const [showAnimation, setShowAnimation] = useState<'four' | 'six' | 'wicket' | null>(null);
+  const [showAnimation, setShowAnimation] = useState<'four' | 'six' | 'wicket' | 'golden' | 'freehit' | null>(null);
+  const [specialEventText, setSpecialEventText] = useState<string | null>(null);
   const [lastEventId, setLastEventId] = useState<string | null>(null);
+
+  // State for stable batsman slots to prevent jumping
+  const [batsmanOneId, setBatsmanOneId] = useState<string | null>(null);
+  const [batsmanTwoId, setBatsmanTwoId] = useState<string | null>(null);
 
   const currentInnings = match.currentInnings === 1 ? match.innings.first : match.innings.second;
 
@@ -17,16 +22,69 @@ export function useOverlayData(match: Match) {
 
       if (lastEvent.isWicket) {
         setShowAnimation('wicket');
-        setTimeout(() => setShowAnimation(null), 2500);
+        setSpecialEventText("WICKET!");
+        setTimeout(() => { setShowAnimation(null); setSpecialEventText(null); }, 4000);
       } else if (lastEvent.runs === 6 || lastEvent.runs === 12) {
         setShowAnimation('six');
-        setTimeout(() => setShowAnimation(null), 2500);
+        setSpecialEventText("SUPER SIX!");
+        setTimeout(() => { setShowAnimation(null); setSpecialEventText(null); }, 4000);
       } else if (lastEvent.runs === 4 || lastEvent.runs === 8) {
         setShowAnimation('four');
-        setTimeout(() => setShowAnimation(null), 2500);
+        setSpecialEventText("FOUR RUNS!");
+        setTimeout(() => { setShowAnimation(null); setSpecialEventText(null); }, 4000);
+      } else if (lastEvent.isGoldenBall || lastEvent.isGoldenDelivery) {
+        setShowAnimation('golden');
+        setSpecialEventText("GOLDEN BALL!");
+        setTimeout(() => { setShowAnimation(null); setSpecialEventText(null); }, 4000);
+      } else if (lastEvent.extraType === 'noball') {
+        setShowAnimation('freehit');
+        setSpecialEventText("FREE HIT!");
+        setTimeout(() => { setShowAnimation(null); setSpecialEventText(null); }, 4000);
       }
     }
   }, [currentInnings?.ballEvents.length, lastEventId]);
+
+  // Update stable batsman slots
+  useEffect(() => {
+    if (!currentInnings) return;
+
+    const strikerId = currentInnings.currentStriker;
+    const nonStrikerId = currentInnings.currentNonStriker;
+
+    if (!strikerId && !nonStrikerId) return;
+
+    // Initial setup
+    if (!batsmanOneId && !batsmanTwoId) {
+      if (strikerId) setBatsmanOneId(strikerId);
+      if (nonStrikerId) setBatsmanTwoId(nonStrikerId);
+      return;
+    }
+
+    // Logic to keep players in their slots
+    // If a player is already locally stored, keep them there.
+    // If a slot is empty or invalid (player out/not in current pair), update it.
+
+    const activeIds = [strikerId, nonStrikerId].filter(Boolean) as string[];
+
+    // If both slots match active players (in any order), we are good
+    if (activeIds.includes(batsmanOneId!) && activeIds.includes(batsmanTwoId!)) {
+      return;
+    }
+
+    // If one slot matches an active player, put the OTHER active player in the OTHER slot
+    if (activeIds.includes(batsmanOneId!) && !activeIds.includes(batsmanTwoId!)) {
+      const newPlayer = activeIds.find(id => id !== batsmanOneId);
+      if (newPlayer) setBatsmanTwoId(newPlayer);
+    } else if (activeIds.includes(batsmanTwoId!) && !activeIds.includes(batsmanOneId!)) {
+      const newPlayer = activeIds.find(id => id !== batsmanTwoId);
+      if (newPlayer) setBatsmanOneId(newPlayer);
+    } else {
+      // Clean slate if everything confused
+      if (strikerId) setBatsmanOneId(strikerId);
+      if (nonStrikerId) setBatsmanTwoId(nonStrikerId);
+    }
+
+  }, [currentInnings?.currentStriker, currentInnings?.currentNonStriker, batsmanOneId, batsmanTwoId]);
 
   const battingTeam = currentInnings?.battingTeamId === match.teams.teamA.id
     ? match.teams.teamA
@@ -35,8 +93,15 @@ export function useOverlayData(match: Match) {
     ? match.teams.teamA
     : match.teams.teamB;
 
-  const striker = battingTeam?.players.find(p => p.id === currentInnings?.currentStriker);
-  const nonStriker = battingTeam?.players.find(p => p.id === currentInnings?.currentNonStriker);
+  // Resolve player objects from IDs
+  const batsmanOne = battingTeam?.players.find(p => p.id === batsmanOneId);
+  const batsmanTwo = battingTeam?.players.find(p => p.id === batsmanTwoId);
+
+  const currentStrikerId = currentInnings?.currentStriker;
+  // const currentNonStrikerId = currentInnings?.currentNonStriker;
+
+  const startStriker = battingTeam?.players.find(p => p.id === currentInnings?.currentStriker);
+  const startNonStriker = battingTeam?.players.find(p => p.id === currentInnings?.currentNonStriker);
   const bowler = bowlingTeam?.players.find(p => p.id === currentInnings?.currentBowler);
 
   const currentOver = currentInnings?.overs ?? 0;
@@ -85,12 +150,19 @@ export function useOverlayData(match: Match) {
     };
   };
 
-  const strikerStats = getBatsmanStats(striker);
-  const nonStrikerStats = getBatsmanStats(nonStriker);
+  const strikerStats = getBatsmanStats(startStriker);
+  const nonStrikerStats = getBatsmanStats(startNonStriker);
+
+  const batsmanOneStats = getBatsmanStats(batsmanOne);
+  const batsmanTwoStats = getBatsmanStats(batsmanTwo);
+
+  // Is out check - naive check against current innings stats
+  const batsmanOneIsOut = currentInnings?.battingStats.find(s => s.playerId === batsmanOneId)?.isOut ?? false;
+  const batsmanTwoIsOut = currentInnings?.battingStats.find(s => s.playerId === batsmanTwoId)?.isOut ?? false;
 
   // Calculate partnership
   const partnership = useMemo(() => {
-    if (!currentInnings || !striker || !nonStriker) return { runs: 0, balls: 0 };
+    if (!currentInnings || !startStriker || !startNonStriker) return { runs: 0, balls: 0 };
 
     // Find last wicket index
     const lastWicketIdx = [...currentInnings.ballEvents].reverse().findIndex(e => e.isWicket);
@@ -101,7 +173,7 @@ export function useOverlayData(match: Match) {
       runs: partnershipEvents.reduce((sum, e) => sum + e.runs + (e.extras || 0) + (e.goldenBallBonus || 0), 0),
       balls: partnershipEvents.filter(e => !e.extraType || e.extraType === 'legbye' || e.extraType === 'bye').length,
     };
-  }, [currentInnings?.ballEvents, striker?.id, nonStriker?.id]);
+  }, [currentInnings?.ballEvents, startStriker?.id, startNonStriker?.id]);
 
   // Get bowler stats
   const bowlerStats = useMemo(() => {
@@ -122,10 +194,23 @@ export function useOverlayData(match: Match) {
   return {
     currentInnings,
     showAnimation,
+    specialEventText,
     battingTeam,
     bowlingTeam,
-    striker,
-    nonStriker,
+    striker: startStriker,
+    nonStriker: startNonStriker,
+
+    // Stable slots
+    batsmanOne,
+    batsmanOneStats,
+    batsmanOneIsStriker: batsmanOneId === currentStrikerId,
+    batsmanOneIsOut,
+
+    batsmanTwo,
+    batsmanTwoStats,
+    batsmanTwoIsStriker: batsmanTwoId === currentStrikerId,
+    batsmanTwoIsOut,
+
     bowler,
     isPowerplay,
     isPowerSurge,
