@@ -224,38 +224,51 @@ export function ScoringPanel({ match }: ScoringPanelProps) {
         </div>
 
         {/* Score Display */}
-        <Card className="glass-panel-strong border-none overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">{battingTeam.name}</p>
-                <p className="text-6xl lg:text-7xl font-score gradient-text">
-                  {currentInnings.runs}/{currentInnings.wickets}
+        <div className="sticky top-0 z-50 -mx-4 px-4 lg:-mx-6 lg:px-6 pt-2 pb-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <Card className="glass-panel-strong border-none overflow-hidden shadow-2xl">
+            <CardContent className="p-4 lg:p-6 relative">
+              <div className="flex flex-col items-center justify-center text-center">
+
+                {/* Team Name */}
+                <p className="text-muted-foreground text-sm font-medium tracking-widest uppercase mb-1">
+                  {battingTeam.name}
                 </p>
-                <p className="text-xl text-muted-foreground font-display">
+
+                {/* Main Score */}
+                <div className="relative">
+                  <p className="text-7xl lg:text-8xl font-score gradient-text leading-none">
+                    {currentInnings.runs}/{currentInnings.wickets}
+                  </p>
+                </div>
+
+                {/* Overs */}
+                <p className="text-xl text-muted-foreground font-display mt-2">
                   ({currentInnings.overs}.{currentInnings.balls} overs)
                 </p>
+
+                {/* Badges - Absolute Right on Desktop, Flow on Mobile */}
+                <div className="flex flex-wrap items-center justify-center gap-2 mt-4 lg:absolute lg:right-6 lg:top-1/2 lg:-translate-y-1/2 lg:flex-col lg:items-end lg:mt-0">
+                  {isPowerplay && (
+                    <Badge className="bg-powerplay text-white animate-pulse">
+                      <Zap className="h-3 w-3 mr-1" /> POWERPLAY
+                    </Badge>
+                  )}
+                  {isPowerSurge && (
+                    <Badge className="bg-powersurge text-white animate-pulse-glow">
+                      <Sparkles className="h-3 w-3 mr-1" /> POWER SURGE
+                    </Badge>
+                  )}
+                  {(isCurrentBallGolden || isGoldenDelivery) && (
+                    <Badge className="bg-golden text-black glow-golden animate-golden-shimmer">
+                      ⭐ GOLDEN BALL
+                    </Badge>
+                  )}
+                </div>
+
               </div>
-              <div className="flex flex-col gap-2">
-                {isPowerplay && (
-                  <Badge className="bg-powerplay text-white animate-pulse">
-                    <Zap className="h-3 w-3 mr-1" /> POWERPLAY
-                  </Badge>
-                )}
-                {isPowerSurge && (
-                  <Badge className="bg-powersurge text-white animate-pulse-glow">
-                    <Sparkles className="h-3 w-3 mr-1" /> POWER SURGE
-                  </Badge>
-                )}
-                {(isCurrentBallGolden || isGoldenDelivery) && (
-                  <Badge className="bg-golden text-black glow-golden animate-golden-shimmer">
-                    ⭐ GOLDEN BALL
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Ball History - All Overs */}
         <BallHistory
